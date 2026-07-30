@@ -1,0 +1,28 @@
+{
+  "name": "@eclipse/api",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch src/index.ts",
+    "start": "tsx src/index.ts",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@eclipse/db": "workspace:*",
+    "@eclipse/game-host": "workspace:*",
+    "@eclipse/shared": "workspace:*",
+    "@hono/node-server": "1.19.0",
+    "dotenv": "catalog:",
+    "drizzle-orm": "catalog:",
+    "hono": "catalog:",
+    "zod": "catalog:"
+  },
+  "devDependencies": {
+    "@types/node": "catalog:",
+    "tsx": "4.20.3",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  }
+}
