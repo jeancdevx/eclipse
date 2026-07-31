@@ -1,0 +1,104 @@
+# Control plane — always-on host (Topology B).
+# Does not run Minecraft; the game VM is driven via DOCKER_HOST=ssh:// + ARM.
+#
+# From repo root (after building images):
+#   docker compose -p eclipse -f infra/docker/compose.control-plane.yaml up -d
+#
+# On the control-plane VM (/opt/eclipse checkout):
+#   unset DOCKER_HOST   # keep host Docker local; api gets DOCKER_HOST from .env
+#   docker compose -p eclipse --env-file .env -f infra/docker/compose.control-plane.yaml up -d
+
+services:
+  postgres:
+    image: postgres:17
+    environment:
+      POSTGRES_USER: eclipse
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: eclipse
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U eclipse -d eclipse']
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+    # Not published — only reachable on the compose network
+
+  api:
+    image: ${ECLIPSE_API_IMAGE:-eclipse-api:local}
+    env_file: ../../.env
+    environment:
+      NODE_ENV: production
+      GAME_HOST: azure
+      AUTH_DEV_BYPASS: 'false'
+      DATABASE_URL: postgresql://eclipse:${POSTGRES_PASSWORD}@postgres:5432/eclipse
+      # DOCKER_HOST + SSH path come from env_file (do not blank them via host shell)
+      SSH_PRIVATE_KEY_PATH: /run/secrets/eclipse_game_ssh
+      MC_COMPOSE_FILE: /app/infra/docker/compose.guest.yaml
+      ECLIPSE_INSTANCES_DIR: /var/lib/eclipse/instances
+    volumes:
+      - ${SSH_PRIVATE_KEY_PATH}:/run/secrets/eclipse_game_ssh:ro
+      - eclipse_api_ssh:/root/.ssh
+    depends_on:
+      postgres:
+        condition: service_healthy
+    ports:
+      - '4000:4000'
+    healthcheck:
+      test:
+        [
+          'CMD',
+          'node',
+          '-e',
+          "fetch('http://127.0.0.1:4000/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
+        ]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+    restart: unless-stopped
+
+  web:
+    image: ${ECLIPSE_WEB_IMAGE:-eclipse-web:local}
+    env_file: ../../.env
+    environment:
+      NODE_ENV: production
+      AUTH_DEV_BYPASS: 'false'
+      API_URL: http://api:4000
+      API_TOKEN: ${API_TOKEN}
+      BETTER_AUTH_URL: ${BETTER_AUTH_URL}
+      DATABASE_URL: postgresql://eclipse:${POSTGRES_PASSWORD}@postgres:5432/eclipse
+    depends_on:
+      api:
+        condition: service_healthy
+    ports:
+      - '3000:3000'
+    healthcheck:
+      test:
+        [
+          'CMD',
+          'node',
+          '-e',
+          "fetch('http://127.0.0.1:3000').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
+        ]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+    restart: unless-stopped
+
+  bot:
+    image: ${ECLIPSE_BOT_IMAGE:-eclipse-bot:local}
+    env_file: ../../.env
+    environment:
+      NODE_ENV: production
+      API_URL: http://api:4000
+    depends_on:
+      api:
+        condition: service_healthy
+    restart: unless-stopped
+
+volumes:
+  pgdata:
+  eclipse_api_ssh:
