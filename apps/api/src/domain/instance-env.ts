@@ -1,5 +1,29 @@
-import { MEMORY_PRESET_MAP } from '@eclipse/shared'
+import { MEMORY_PRESET_MAP, loaderVersionEnvKey } from '@eclipse/shared'
 import type { instances } from '@eclipse/db'
+
+const LOADER_VERSION_KEYS = [
+  'NEOFORGE_VERSION',
+  'FORGE_VERSION',
+  'FABRIC_LOADER_VERSION'
+] as const
+
+/** Merge optional loaderVersion into instance env for itzg. */
+export function applyLoaderVersion(
+  env: Record<string, string>,
+  loader: string,
+  loaderVersion: string | undefined
+): Record<string, string> {
+  const key = loaderVersionEnvKey(loader)
+  const next = { ...env }
+  for (const k of LOADER_VERSION_KEYS) {
+    if (k !== key) delete next[k]
+  }
+  if (!key) return next
+  const trimmed = loaderVersion?.trim()
+  if (trimmed) next[key] = trimmed
+  else delete next[key]
+  return next
+}
 
 export const DEFAULT_MODRINTH_EXCLUDES = [
   'missingmodschecker',
