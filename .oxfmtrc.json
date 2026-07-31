@@ -1,0 +1,154 @@
+{
+  "$schema": "./node_modules/oxfmt/configuration_schema.json",
+  "arrowParens": "avoid",
+  "bracketSpacing": true,
+  "htmlWhitespaceSensitivity": "css",
+  "insertPragma": false,
+  "jsxSingleQuote": true,
+  "printWidth": 80,
+  "proseWrap": "always",
+  "quoteProps": "as-needed",
+  "requirePragma": false,
+  "semi": false,
+  "singleQuote": true,
+  "tabWidth": 2,
+  "trailingComma": "none",
+  "useTabs": false,
+  "ignorePatterns": [
+    "**/dist/**",
+    "**/node_modules/**",
+    "**/.turbo/**",
+    "**/coverage/**",
+    "**/.next/**",
+    "**/pnpm-lock.yaml",
+    "docs/**",
+    "infra/**"
+  ],
+  "sortTailwindcss": {
+    "stylesheet": "./apps/web/src/app/globals.css",
+    "functions": ["clsx", "cn"]
+  },
+  "sortImports": {
+    "newlinesBetween": true,
+    "internalPattern": ["^@eclipse/"],
+    "customGroups": [
+      {
+        "groupName": "eclipse",
+        "elementNamePattern": ["@eclipse/**"]
+      },
+      {
+        "groupName": "types",
+        "elementNamePattern": [
+          "**/types/**",
+          "**/interfaces/**",
+          "./**/types/**",
+          "../**/types/**"
+        ]
+      },
+      {
+        "groupName": "schemas",
+        "elementNamePattern": [
+          "**/schemas/**",
+          "./**/schemas/**",
+          "../**/schemas/**"
+        ]
+      },
+      {
+        "groupName": "db",
+        "elementNamePattern": [
+          "**/db/**",
+          "**/database/**",
+          "**/migrations/**",
+          "@eclipse/db",
+          "@eclipse/db/**"
+        ]
+      },
+      {
+        "groupName": "game-host",
+        "elementNamePattern": [
+          "**/game-host/**",
+          "@eclipse/game-host",
+          "@eclipse/game-host/**"
+        ]
+      },
+      {
+        "groupName": "adapters",
+        "elementNamePattern": [
+          "**/adapters/**",
+          "./**/adapters/**",
+          "../**/adapters/**"
+        ]
+      },
+      {
+        "groupName": "services",
+        "elementNamePattern": [
+          "**/services/**",
+          "./**/services/**",
+          "../**/services/**"
+        ]
+      },
+      {
+        "groupName": "auth",
+        "elementNamePattern": [
+          "**/auth/**",
+          "@eclipse/auth",
+          "@eclipse/auth/**"
+        ]
+      },
+      {
+        "groupName": "routes",
+        "elementNamePattern": [
+          "**/routes/**",
+          "**/handlers/**",
+          "./**/routes/**",
+          "../**/routes/**"
+        ]
+      },
+      {
+        "groupName": "components",
+        "elementNamePattern": [
+          "**/components/**",
+          "@/components/**",
+          "./**/components/**"
+        ]
+      },
+      {
+        "groupName": "config",
+        "elementNamePattern": [
+          "**/config/**",
+          "**/constants/**",
+          "./**/config/**",
+          "../**/config/**"
+        ]
+      },
+      {
+        "groupName": "lib",
+        "elementNamePattern": ["**/lib/**", "@/lib/**", "./**/lib/**"]
+      },
+      {
+        "groupName": "utils",
+        "elementNamePattern": ["**/utils/**", "./**/utils/**", "../**/utils/**"]
+      }
+    ],
+    "groups": [
+      "type-import",
+      ["value-builtin", "value-external"],
+      "eclipse",
+      "types",
+      "schemas",
+      "db",
+      "game-host",
+      "adapters",
+      "services",
+      "auth",
+      "routes",
+      "components",
+      "config",
+      "lib",
+      "utils",
+      ["value-internal", "type-internal"],
+      ["value-parent", "value-sibling", "value-index"],
+      "unknown"
+    ]
+  }
+}
