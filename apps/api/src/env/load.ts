@@ -3,7 +3,12 @@ import { existsSync } from 'node:fs'
 import { dirname, isAbsolute, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
+import { localHostMemoryMb } from '../domain/memory-clamp.js'
 import { envSchema } from './schema.js'
+
+function unescapeComposeEnvValue(value: string): string {
+  return value.replaceAll('$$', '$')
+}
 
 const here = dirname(fileURLToPath(import.meta.url))
 
@@ -64,9 +69,14 @@ export const env = {
   joinHost: raw.JOIN_HOST ?? '',
   joinPort: Number(raw.JOIN_PORT ?? 25565),
   publicIp: raw.PUBLIC_IP ?? '',
-  cfApiKey: raw.CF_API_KEY ?? '',
+  cfApiKey: unescapeComposeEnvValue(raw.CF_API_KEY ?? ''),
   dockerHost: raw.DOCKER_HOST ?? '',
   sshPrivateKeyPath: raw.SSH_PRIVATE_KEY_PATH ?? '',
+  /** Game-plane RAM in MiB. Azure D4 defaults to 16 GiB when unset. */
+  gameHostMemoryMb: Number(
+    raw.GAME_HOST_MEMORY_MB ??
+      (gameHost === 'azure' ? 16384 : localHostMemoryMb())
+  ),
   azure: {
     subscriptionId: raw.AZURE_SUBSCRIPTION_ID ?? '',
     resourceGroup: raw.AZURE_RESOURCE_GROUP ?? '',

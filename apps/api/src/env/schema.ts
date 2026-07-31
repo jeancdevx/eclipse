@@ -22,6 +22,8 @@ export const envSchema = z
     CF_API_KEY: z.string().optional(),
     DOCKER_HOST: z.string().optional(),
     SSH_PRIVATE_KEY_PATH: z.string().optional(),
+    /** Physical RAM of the game host in MiB (Azure D4≈16384). Used to clamp JVM MEMORY. */
+    GAME_HOST_MEMORY_MB: z.string().optional(),
     AZURE_SUBSCRIPTION_ID: z.string().optional(),
     AZURE_RESOURCE_GROUP: z.string().optional(),
     AZURE_VM_NAME: z.string().optional(),
