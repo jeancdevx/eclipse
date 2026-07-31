@@ -26,3 +26,8 @@ export {
   sha256LocalFile,
   statLocalSize
 } from './ssh/ssh-fs'
+export {
+  escapeComposeEnvValue,
+  formatComposeEnvFile,
+  unescapeComposeEnvValue
+} from './docker/compose-env'
