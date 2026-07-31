@@ -1,0 +1,118 @@
+import { z } from 'zod'
+
+export const loaderSchema = z.enum([
+  'VANILLA',
+  'PAPER',
+  'FABRIC',
+  'FORGE',
+  'NEOFORGE',
+  'MODRINTH',
+  'AUTO_CURSEFORGE'
+])
+
+export type Loader = z.infer<typeof loaderSchema>
+
+export const memoryPresetSchema = z.enum(['light', 'standard', 'heavy'])
+
+export type MemoryPreset = z.infer<typeof memoryPresetSchema>
+
+export const MEMORY_PRESET_MAP: Record<MemoryPreset, string> = {
+  light: '8G',
+  standard: '16G',
+  heavy: '24G'
+}
+
+export const instanceStatusSchema = z.enum([
+  'idle',
+  'starting',
+  'running',
+  'stopping',
+  'error'
+])
+
+export type InstanceStatus = z.infer<typeof instanceStatusSchema>
+
+export const createInstanceSchema = z.object({
+  name: z.string().min(1).max(64),
+  slug: z
+    .string()
+    .min(1)
+    .max(64)
+    .regex(/^[a-z0-9-]+$/),
+  loader: loaderSchema.default('FABRIC'),
+  mcVersion: z.string().default('1.21.1'),
+  memoryPreset: memoryPresetSchema.default('light'),
+  env: z.record(z.string(), z.string()).optional()
+})
+
+export type CreateInstanceInput = z.infer<typeof createInstanceSchema>
+
+export const updateInstanceSchema = z.object({
+  name: z.string().min(1).max(64).optional(),
+  loader: loaderSchema.optional(),
+  mcVersion: z.string().optional(),
+  memoryPreset: memoryPresetSchema.optional(),
+  env: z.record(z.string(), z.string()).optional()
+})
+
+export type UpdateInstanceInput = z.infer<typeof updateInstanceSchema>
+
+export const serverStatusSchema = z.object({
+  container: z.enum(['running', 'exited', 'missing', 'unknown']),
+  activeInstanceId: z.string().nullable(),
+  playersOnline: z.number().int().nonnegative(),
+  maxPlayers: z.number().int().nonnegative().optional(),
+  motd: z.string().optional(),
+  vmPowerState: z.enum(['running', 'deallocated', 'unknown']).optional()
+})
+
+export type ServerStatus = z.infer<typeof serverStatusSchema>
+
+export const rconCommandSchema = z.object({
+  command: z.string().min(1).max(256)
+})
+
+export const backupRetentionSchema = z.object({
+  keepLast: z.number().int().positive().default(10),
+  maxAgeDays: z.number().int().positive().optional()
+})
+
+export type BackupRetention = z.infer<typeof backupRetentionSchema>
+
+export const installModpackSchema = z.object({
+  provider: z.enum(['modrinth', 'curseforge']),
+  url: z.string().min(1).max(2048),
+  version: z.string().max(128).optional(),
+  /** Partial filenames / slugs for itzg MODRINTH_EXCLUDE_FILES */
+  excludeFiles: z.string().max(2048).optional()
+})
+
+export type InstallModpackInput = z.infer<typeof installModpackSchema>
+
+export const filePathSchema = z
+  .string()
+  .max(1024)
+  .refine(p => !p.includes('..'), { message: 'path traversal not allowed' })
+
+export const writeFileSchema = z.object({
+  path: filePathSchema,
+  content: z.string().max(2_000_000)
+})
+
+export const mkdirSchema = z.object({
+  path: z
+    .string()
+    .min(1)
+    .max(1024)
+    .refine(p => !p.includes('..'), { message: 'path traversal not allowed' })
+})
+
+export const moveFileSchema = z.object({
+  from: filePathSchema,
+  to: filePathSchema
+})
+
+export const connectionSettingsSchema = z.object({
+  host: z.string().min(1).max(253),
+  port: z.number().int().min(1).max(65535).default(25565)
+})
