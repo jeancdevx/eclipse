@@ -12,6 +12,35 @@ export const loaderSchema = z.enum([
 
 export type Loader = z.infer<typeof loaderSchema>
 
+/** itzg env var that pins the mod-loader build for a given TYPE. */
+export function loaderVersionEnvKey(loader: string): string | null {
+  switch (loader.toUpperCase()) {
+    case 'NEOFORGE':
+    case 'AUTO_CURSEFORGE':
+      return 'NEOFORGE_VERSION'
+    case 'FORGE':
+      return 'FORGE_VERSION'
+    case 'FABRIC':
+      return 'FABRIC_LOADER_VERSION'
+    default:
+      return null
+  }
+}
+
+export function loaderVersionLabel(loader: string): string | null {
+  switch (loader.toUpperCase()) {
+    case 'NEOFORGE':
+    case 'AUTO_CURSEFORGE':
+      return 'NeoForge version'
+    case 'FORGE':
+      return 'Forge version'
+    case 'FABRIC':
+      return 'Fabric loader version'
+    default:
+      return null
+  }
+}
+
 export const memoryPresetSchema = z.enum(['light', 'standard', 'heavy'])
 
 export type MemoryPreset = z.infer<typeof memoryPresetSchema>
@@ -32,6 +61,13 @@ export const instanceStatusSchema = z.enum([
 
 export type InstanceStatus = z.infer<typeof instanceStatusSchema>
 
+/** Optional pin e.g. NeoForge `21.1.228` (itzg defaults to latest for the MC version). */
+const loaderVersionField = z
+  .string()
+  .max(64)
+  .regex(/^[A-Za-z0-9._-]*$/, 'invalid loader version')
+  .optional()
+
 export const createInstanceSchema = z.object({
   name: z.string().min(1).max(64),
   slug: z
@@ -41,6 +77,8 @@ export const createInstanceSchema = z.object({
     .regex(/^[a-z0-9-]+$/),
   loader: loaderSchema.default('FABRIC'),
   mcVersion: z.string().default('1.21.1'),
+  /** Pins NEOFORGE_VERSION / FORGE_VERSION / FABRIC_LOADER_VERSION when set. */
+  loaderVersion: loaderVersionField,
   memoryPreset: memoryPresetSchema.default('light'),
   env: z.record(z.string(), z.string()).optional()
 })
@@ -51,6 +89,7 @@ export const updateInstanceSchema = z.object({
   name: z.string().min(1).max(64).optional(),
   loader: loaderSchema.optional(),
   mcVersion: z.string().optional(),
+  loaderVersion: loaderVersionField,
   memoryPreset: memoryPresetSchema.optional(),
   env: z.record(z.string(), z.string()).optional()
 })
