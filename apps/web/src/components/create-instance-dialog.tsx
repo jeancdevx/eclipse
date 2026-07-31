@@ -2,7 +2,11 @@
 
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
-import type { Loader, MemoryPreset } from '@eclipse/shared'
+import {
+  loaderVersionLabel,
+  type Loader,
+  type MemoryPreset
+} from '@eclipse/shared'
 
 import { Button } from '@/components/ui/button'
 import {
@@ -48,9 +52,12 @@ export function CreateInstanceDialog({ open, onOpenChange, onCreated }: Props) {
   const [slug, setSlug] = useState('survival-mods')
   const [loader, setLoader] = useState<Loader>('FABRIC')
   const [mcVersion, setMcVersion] = useState('1.21.1')
+  const [loaderVersion, setLoaderVersion] = useState('')
   const [preset, setPreset] = useState<MemoryPreset>('light')
   const [pending, setPending] = useState(false)
   const [caps, setCaps] = useState<Caps | null>(null)
+
+  const versionLabel = loaderVersionLabel(loader)
 
   useEffect(() => {
     if (!open) return
@@ -67,7 +74,10 @@ export function CreateInstanceDialog({ open, onOpenChange, onCreated }: Props) {
         slug,
         loader,
         mcVersion,
-        memoryPreset: preset
+        memoryPreset: preset,
+        ...(loaderVersion.trim()
+          ? { loaderVersion: loaderVersion.trim() }
+          : {})
       })
       const fits = caps?.presets?.[preset]?.fits
       toast.success(
@@ -121,7 +131,10 @@ export function CreateInstanceDialog({ open, onOpenChange, onCreated }: Props) {
             <FieldLabel>Loader</FieldLabel>
             <Select
               value={loader}
-              onValueChange={v => setLoader(v as Loader)}
+              onValueChange={v => {
+                setLoader(v as Loader)
+                setLoaderVersion('')
+              }}
             >
               <SelectTrigger>
                 <SelectValue />
@@ -145,6 +158,23 @@ export function CreateInstanceDialog({ open, onOpenChange, onCreated }: Props) {
               onChange={e => setMcVersion(e.target.value)}
             />
           </Field>
+          {versionLabel ? (
+            <Field>
+              <FieldLabel htmlFor='inst-loader-version'>
+                {versionLabel}
+              </FieldLabel>
+              <Input
+                id='inst-loader-version'
+                placeholder='e.g. 21.1.228 (empty = latest)'
+                value={loaderVersion}
+                onChange={e => setLoaderVersion(e.target.value)}
+              />
+              <FieldDescription>
+                Leave empty to let itzg pick the latest build for this Minecraft
+                version. Modpacks often need an exact pin.
+              </FieldDescription>
+            </Field>
+          ) : null}
           <Field>
             <FieldLabel>Memory</FieldLabel>
             <Select
