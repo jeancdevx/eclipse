@@ -1,0 +1,36 @@
+{
+  "name": "eclipse",
+  "private": true,
+  "scripts": {
+    "dev": "turbo run dev --parallel",
+    "build": "turbo run build",
+    "typecheck": "turbo run typecheck",
+    "test": "turbo run test",
+    "lint": "oxlint .",
+    "format": "oxfmt .",
+    "format:check": "oxfmt --check .",
+    "check": "pnpm lint && pnpm format:check && pnpm typecheck",
+    "db:generate": "pnpm --filter @eclipse/db generate",
+    "db:push": "pnpm --filter @eclipse/db push",
+    "db:studio": "pnpm --filter @eclipse/db studio",
+    "mc:up": "node scripts/ensure-mc-data.mjs && docker compose -f infra/docker/compose.mc.yaml up -d",
+    "mc:down": "docker compose -f infra/docker/compose.mc.yaml down",
+    "mc:logs": "docker compose -f infra/docker/compose.mc.yaml logs -f mc",
+    "stack:up": "node scripts/ensure-mc-data.mjs && docker compose -f infra/docker/compose.yaml up -d",
+    "stack:down": "docker compose -f infra/docker/compose.yaml down --remove-orphans",
+    "stack:logs": "docker compose -f infra/docker/compose.yaml logs -f",
+    "images:build": "docker build -f apps/api/Dockerfile -t eclipse-api:local . && docker build -f apps/web/Dockerfile -t eclipse-web:local . && docker build -f apps/bot/Dockerfile -t eclipse-bot:local .",
+    "cp:up": "docker compose -p eclipse -f infra/docker/compose.control-plane.yaml up -d",
+    "cp:down": "docker compose -p eclipse -f infra/docker/compose.control-plane.yaml down"
+  },
+  "devDependencies": {
+    "oxfmt": "0.60.0",
+    "oxlint": "1.75.0",
+    "turbo": "2.10.6",
+    "typescript": "5.9.3"
+  },
+  "engines": {
+    "node": ">=24"
+  },
+  "packageManager": "pnpm@11.17.0"
+}
