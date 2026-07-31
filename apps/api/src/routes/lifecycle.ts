@@ -8,6 +8,7 @@ import {
   resolveConnection,
   setJoinOverride
 } from '../domain/join-address.js'
+import { formatMemoryMb, parseMemoryToMb } from '../domain/memory-clamp.js'
 import { env } from '../env.js'
 import {
   restartActive,
@@ -28,8 +29,19 @@ lifecycleRouter.get('/status', async (c) => {
 })
 
 lifecycleRouter.get('/capabilities', async (c) => {
+  const hostMb = env.gameHostMemoryMb
+  const reserveMb = hostMb >= 8192 ? 4096 : Math.floor(hostMb * 0.55)
+  const maxHeapMb = Math.max(2048, hostMb - reserveMb)
   return c.json({
-    curseforgeConfigured: Boolean(env.cfApiKey)
+    curseforgeConfigured: Boolean(env.cfApiKey),
+    hostMemoryMb: hostMb,
+    maxHeapMb,
+    maxHeap: formatMemoryMb(maxHeapMb),
+    presets: {
+      light: { memory: '8G', fits: parseMemoryToMb('8G') <= maxHeapMb },
+      standard: { memory: '16G', fits: parseMemoryToMb('16G') <= maxHeapMb },
+      heavy: { memory: '24G', fits: parseMemoryToMb('24G') <= maxHeapMb }
+    }
   })
 })
 
