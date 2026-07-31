@@ -1,6 +1,7 @@
 import { eq } from 'drizzle-orm'
 import { join } from 'node:path'
 
+import { formatComposeEnvFile } from '@eclipse/game-host'
 import { instances } from '@eclipse/db'
 
 import { buildEnv } from '../domain/instance-env.js'
@@ -18,17 +19,19 @@ async function writeInstanceRuntimeEnv(
   dataPath: string,
   envVars: Record<string, string>
 ) {
-  const lines = Object.entries(envVars)
-    .map(([k, v]) => `${k}=${v}`)
-    .join('\n')
-  const body = `${lines}\n`
-  await instanceFs.writeRuntimeEnv(dataPath, composeRuntimeEnvPath(), body)
+  // Escape `$` for Docker Compose env_file interpolation (CurseForge keys).
+  await instanceFs.writeRuntimeEnv(
+    dataPath,
+    composeRuntimeEnvPath(),
+    formatComposeEnvFile(envVars)
+  )
 }
 
 export function buildInstanceEnv(row: typeof instances.$inferSelect) {
   return buildEnv(row, {
     gameHost: env.gameHost,
     cfApiKey: env.cfApiKey,
+    hostMemoryMb: env.gameHostMemoryMb,
     clampMemory: clampMemoryForHost
   })
 }
