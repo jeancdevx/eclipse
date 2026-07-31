@@ -1,12 +1,28 @@
 'use client'
 
+import { useRouter } from 'next/navigation'
 import { useCallback, useEffect, useState } from 'react'
 import { toast } from 'sonner'
+import {
+  loaderVersionEnvKey,
+  loaderVersionLabel
+} from '@eclipse/shared'
 
 import { FileManager } from '@/components/file-manager'
 import { InstanceHeader } from '@/components/instance-detail/instance-header'
 import { ModpackPanel } from '@/components/instance-detail/modpack-panel'
 import { ModsPanel } from '@/components/instance-detail/mods-panel'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle
+} from '@/components/ui/alert-dialog'
+import { Button } from '@/components/ui/button'
 import {
   Card,
   CardContent,
@@ -14,6 +30,8 @@ import {
   CardHeader,
   CardTitle
 } from '@/components/ui/card'
+import { Field, FieldDescription, FieldLabel } from '@/components/ui/field'
+import { Input } from '@/components/ui/input'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import {
   apiDelete,
@@ -26,6 +44,7 @@ import {
 import type { Instance, StatusPayload } from '@/lib/types'
 
 export function InstanceDetail({ instanceId }: { instanceId: string }) {
+  const router = useRouter()
   const [instance, setInstance] = useState<Instance | null>(null)
   const [mods, setMods] = useState<string[]>([])
   const [status, setStatus] = useState<StatusPayload | null>(null)
@@ -36,6 +55,9 @@ export function InstanceDetail({ instanceId }: { instanceId: string }) {
   const [packVersion, setPackVersion] = useState('')
   const [excludeFiles, setExcludeFiles] = useState('')
   const [cfConfigured, setCfConfigured] = useState(true)
+  const [loaderVersionDraft, setLoaderVersionDraft] = useState('')
+  const [confirmDelete, setConfirmDelete] = useState(false)
+  const [deleting, setDeleting] = useState(false)
 
   const refresh = useCallback(async () => {
     try {
@@ -47,6 +69,8 @@ export function InstanceDetail({ instanceId }: { instanceId: string }) {
       setInstance(inst.instance)
       setStatus(st)
       setMods(modsRes.mods ?? [])
+      const key = loaderVersionEnvKey(inst.instance.loader)
+      setLoaderVersionDraft(key ? (inst.instance.env?.[key] ?? '') : '')
       const ex = inst.instance.env?.MODRINTH_EXCLUDE_FILES
       if (ex) setExcludeFiles(ex)
     } catch (err) {
