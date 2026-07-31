@@ -1,0 +1,25 @@
+{
+  "name": "@eclipse/game-host",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@azure/arm-compute": "23.1.0",
+    "@azure/identity": "4.13.1",
+    "@azure/storage-blob": "12.28.0",
+    "@eclipse/shared": "workspace:*",
+    "rcon-client": "4.2.5"
+  },
+  "devDependencies": {
+    "@types/node": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  }
+}
