@@ -112,6 +112,29 @@ export function createInstanceFs(ssh: SshFs | null) {
       await ssh.mkdirp(dataPath)
       await ssh.writeFile(join(dataPath, '.eclipse-runtime.env'), body)
       await ssh.writeFile(composeRuntimePath, body)
+    },
+
+    /**
+     * Delete an instance data directory. `dataPath` must resolve under
+     * `instancesDir` (slug folder only — never the instances root itself).
+     */
+    async removeInstanceDir(dataPath: string, instancesDir: string) {
+      const { relative, resolve } = await import('node:path')
+      const root = resolve(instancesDir)
+      const target = resolve(dataPath)
+      const rel = relative(root, target)
+      if (!rel || rel === '.' || rel.startsWith('..') || rel.includes('..')) {
+        throw new Error('refusing to delete path outside instances dir')
+      }
+      if (rel.split(/[/\\]/).length !== 1) {
+        throw new Error('refusing to delete nested path')
+      }
+      if (!ssh) {
+        const { rm } = await import('node:fs/promises')
+        await rm(target, { recursive: true, force: true })
+        return
+      }
+      await ssh.rm(target)
     }
   }
 }
