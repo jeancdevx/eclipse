@@ -27,7 +27,8 @@ export function mergeCsvEnv(
 export type BuildEnvDeps = {
   gameHost: 'local' | 'azure'
   cfApiKey: string
-  clampMemory: (requested: string, gameHost: 'local' | 'azure') => string
+  hostMemoryMb: number
+  clampMemory: (requested: string, hostMemoryMb: number) => string
 }
 
 export function buildEnv(
@@ -41,7 +42,7 @@ export function buildEnv(
     TYPE: row.loader,
     VERSION: row.mcVersion,
     ...row.env,
-    MEMORY: deps.clampMemory(row.env?.MEMORY ?? requested, deps.gameHost)
+    MEMORY: deps.clampMemory(row.env?.MEMORY ?? requested, deps.hostMemoryMb)
   }
 
   if (
