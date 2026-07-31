@@ -4,15 +4,13 @@ import { cors } from 'hono/cors'
 
 import { API_PREFIX } from '@eclipse/shared'
 
-import { env } from './env'
-import { requireApiToken } from './middleware/auth'
-import {
-  backupsRouter,
-  instancesRouter,
-  lifecycleRouter
-} from './routes/instances'
-import { startIdleWatcher } from './services/idle-watcher'
-import { seedDefaultInstance } from './services/seed'
+import { env } from './env.js'
+import { requireApiToken } from './middleware/auth.js'
+import { backupsRouter } from './routes/backups.js'
+import { instancesRouter } from './routes/instances/index.js'
+import { lifecycleRouter } from './routes/lifecycle.js'
+import { startIdleWatcher } from './services/idle-watcher.js'
+import { seedDefaultInstance } from './services/seed.js'
 
 const app = new Hono()
 
@@ -25,7 +23,7 @@ app.use(
   })
 )
 
-app.get('/health', c => c.json({ ok: true, service: 'eclipse-api' }))
+app.get('/health', (c) => c.json({ ok: true, service: 'eclipse-api' }))
 
 const v1 = new Hono()
 v1.use('*', requireApiToken)
@@ -38,12 +36,12 @@ app.route(API_PREFIX, v1)
 startIdleWatcher()
 
 void seedDefaultInstance()
-  .catch(err => {
+  .catch((err) => {
     // eslint-disable-next-line no-console
     console.warn('[seed] skipped:', err)
   })
   .finally(() => {
-    serve({ fetch: app.fetch, port: env.port }, info => {
+    serve({ fetch: app.fetch, port: env.port }, (info) => {
       // eslint-disable-next-line no-console
       console.info(`Eclipse API listening on http://localhost:${info.port}`)
     })
