@@ -184,15 +184,61 @@ export function InstanceDetail({ instanceId }: { instanceId: string }) {
     }
   }
 
+  async function saveLoaderVersion() {
+    try {
+      await apiPatch(`/instances/${instanceId}`, {
+        loaderVersion: loaderVersionDraft.trim()
+      })
+      toast.success('Loader version saved — activate/restart to apply')
+      await refresh()
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Save failed')
+    }
+  }
+
+  async function deleteInstance() {
+    setDeleting(true)
+    try {
+      const res = await apiDelete<{
+        ok: boolean
+        dataRemoved?: boolean
+        dataWarning?: string
+      }>(`/instances/${instanceId}`)
+      if (res.dataWarning) {
+        toast.warning(
+          `Instance removed. Data on disk: ${res.dataWarning}`
+        )
+      } else {
+        toast.success(
+          res.dataRemoved
+            ? 'Instance and world data deleted'
+            : 'Instance deleted'
+        )
+      }
+      router.push('/dashboard/instances')
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Delete failed')
+    } finally {
+      setDeleting(false)
+      setConfirmDelete(false)
+    }
+  }
+
   if (!instance) {
     return <p className='text-sm text-muted-foreground'>Loading…</p>
   }
 
   const running = status?.status.container === 'running'
+  const versionLabel = loaderVersionLabel(instance.loader)
 
   return (
     <div className='flex flex-col gap-6'>
-      <InstanceHeader instance={instance} />
+      <InstanceHeader
+        instance={instance}
+        onDelete={
+          instance.isActive ? undefined : () => setConfirmDelete(true)
+        }
+      />
 
       <Tabs defaultValue='overview'>
         <TabsList>
@@ -210,7 +256,7 @@ export function InstanceDetail({ instanceId }: { instanceId: string }) {
                 Instance metadata and runtime env.
               </CardDescription>
             </CardHeader>
-            <CardContent className='grid gap-2 text-sm sm:grid-cols-2'>
+            <CardContent className='grid gap-4 text-sm sm:grid-cols-2'>
               <div>
                 <p className='text-muted-foreground'>Slug</p>
                 <p className='font-mono'>{instance.slug}</p>
@@ -219,6 +265,40 @@ export function InstanceDetail({ instanceId }: { instanceId: string }) {
                 <p className='text-muted-foreground'>Memory</p>
                 <p>{instance.memoryPreset}</p>
               </div>
+              {versionLabel ? (
+                <div className='sm:col-span-2'>
+                  <Field>
+                    <FieldLabel htmlFor='loader-version-pin'>
+                      {versionLabel}
+                    </FieldLabel>
+                    <div className='flex flex-wrap gap-2'>
+                      <Input
+                        id='loader-version-pin'
+                        className='max-w-xs'
+                        placeholder='e.g. 21.1.228 (empty = latest)'
+                        value={loaderVersionDraft}
+                        onChange={e => setLoaderVersionDraft(e.target.value)}
+                      />
+                      <Button
+                        type='button'
+                        size='sm'
+                        variant='secondary'
+                        onClick={() => void saveLoaderVersion()}
+                      >
+                        Save
+                      </Button>
+                    </div>
+                    <FieldDescription>
+                      Pins itzg{' '}
+                      <code>
+                        {loaderVersionEnvKey(instance.loader) ?? 'VERSION'}
+                      </code>
+                      . Needed when a pack expects an exact NeoForge/Forge
+                      build (e.g. 21.1.228 instead of latest 21.1.x).
+                    </FieldDescription>
+                  </Field>
+                </div>
+              ) : null}
               <div className='sm:col-span-2'>
                 <p className='text-muted-foreground'>Env overrides</p>
                 <pre className='mt-1 overflow-auto rounded-md border bg-muted/40 p-2 font-mono text-xs'>
@@ -258,6 +338,31 @@ export function InstanceDetail({ instanceId }: { instanceId: string }) {
           <FileManager instanceId={instanceId} serverRunning={running} />
         </TabsContent>
       </Tabs>
+
+      <AlertDialog open={confirmDelete} onOpenChange={setConfirmDelete}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete instance?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Removes {instance.name} ({instance.slug}) and its world data.
+              Active instances cannot be deleted — switch away first.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleting}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              variant='destructive'
+              disabled={deleting}
+              onClick={e => {
+                e.preventDefault()
+                void deleteInstance()
+              }}
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }
