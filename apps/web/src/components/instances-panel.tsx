@@ -3,10 +3,24 @@
 import Link from 'next/link'
 import { useCallback, useEffect, useState } from 'react'
 import { toast } from 'sonner'
-import { PlusIcon } from 'lucide-react'
-import { MEMORY_PRESET_MAP, type MemoryPreset } from '@eclipse/shared'
+import { PlusIcon, Trash2Icon } from 'lucide-react'
+import {
+  MEMORY_PRESET_MAP,
+  loaderVersionEnvKey,
+  type MemoryPreset
+} from '@eclipse/shared'
 
 import { CreateInstanceDialog } from '@/components/create-instance-dialog'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle
+} from '@/components/ui/alert-dialog'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import {
@@ -24,12 +38,14 @@ import {
   TableHeader,
   TableRow
 } from '@/components/ui/table'
-import { apiGet, apiPost } from '@/lib/client-api'
+import { apiDelete, apiGet, apiPost } from '@/lib/client-api'
 import type { Instance } from '@/lib/types'
 
 export function InstancesPanel() {
   const [instances, setInstances] = useState<Instance[]>([])
   const [open, setOpen] = useState(false)
+  const [pendingDelete, setPendingDelete] = useState<Instance | null>(null)
+  const [deleting, setDeleting] = useState(false)
 
   const refresh = useCallback(async () => {
     try {
@@ -63,6 +79,43 @@ export function InstancesPanel() {
     }
   }
 
+  async function confirmDelete() {
+    if (!pendingDelete) return
+    setDeleting(true)
+    try {
+      const res = await apiDelete<{
+        ok: boolean
+        dataRemoved?: boolean
+        dataWarning?: string
+      }>(`/instances/${pendingDelete.id}`)
+      if (res.dataWarning) {
+        toast.warning(
+          `Instance removed from panel. Data on disk: ${res.dataWarning}`
+        )
+      } else {
+        toast.success(
+          res.dataRemoved
+            ? 'Instance and world data deleted'
+            : 'Instance deleted'
+        )
+      }
+      setPendingDelete(null)
+      await refresh()
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Delete failed')
+    } finally {
+      setDeleting(false)
+    }
+  }
+
+  function loaderLine(inst: Instance) {
+    const key = loaderVersionEnvKey(inst.loader)
+    const pin = key ? inst.env?.[key] : undefined
+    return pin
+      ? `${inst.loader} ${inst.mcVersion} @ ${pin}`
+      : `${inst.loader} ${inst.mcVersion}`
+  }
+
   return (
     <div className='flex flex-col gap-6'>
       <div className='flex flex-wrap items-end justify-between gap-3'>
@@ -82,7 +135,8 @@ export function InstancesPanel() {
         <CardHeader>
           <CardTitle>All instances</CardTitle>
           <CardDescription>
-            Switch, open details, or back up the active world.
+            Switch, open details, delete idle profiles, or back up the active
+            world.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -112,9 +166,7 @@ export function InstancesPanel() {
                       </span>
                     </div>
                   </TableCell>
-                  <TableCell className='text-sm'>
-                    {inst.loader} {inst.mcVersion}
-                  </TableCell>
+                  <TableCell className='text-sm'>{loaderLine(inst)}</TableCell>
                   <TableCell className='text-sm'>
                     {MEMORY_PRESET_MAP[inst.memoryPreset as MemoryPreset] ??
                       inst.memoryPreset}
@@ -128,14 +180,25 @@ export function InstancesPanel() {
                   <TableCell className='text-right'>
                     <div className='flex justify-end gap-2'>
                       {!inst.isActive ? (
-                        <Button
-                          type='button'
-                          size='sm'
-                          variant='outline'
-                          onClick={() => void activate(inst.id)}
-                        >
-                          Switch
-                        </Button>
+                        <>
+                          <Button
+                            type='button'
+                            size='sm'
+                            variant='outline'
+                            onClick={() => void activate(inst.id)}
+                          >
+                            Switch
+                          </Button>
+                          <Button
+                            type='button'
+                            size='sm'
+                            variant='ghost'
+                            onClick={() => setPendingDelete(inst)}
+                          >
+                            <Trash2Icon data-icon='inline-start' />
+                            Delete
+                          </Button>
+                        </>
                       ) : (
                         <Button
                           type='button'
@@ -172,6 +235,40 @@ export function InstancesPanel() {
         onOpenChange={setOpen}
         onCreated={() => void refresh()}
       />
+
+      <AlertDialog
+        open={pendingDelete !== null}
+        onOpenChange={open => {
+          if (!open) setPendingDelete(null)
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete instance?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Removes{' '}
+              <span className='font-medium text-foreground'>
+                {pendingDelete?.name}
+              </span>{' '}
+              ({pendingDelete?.slug}) from the panel and deletes its world data
+              on disk. This cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleting}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              variant='destructive'
+              disabled={deleting}
+              onClick={e => {
+                e.preventDefault()
+                void confirmDelete()
+              }}
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }
