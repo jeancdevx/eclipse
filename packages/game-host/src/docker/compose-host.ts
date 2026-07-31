@@ -4,6 +4,7 @@ import { spawn } from 'node:child_process'
 import {
   access,
   lstat,
+  mkdir,
   rename,
   symlink,
   unlink,
@@ -18,6 +19,7 @@ import { ensureDir, listJarMods } from '../fs/fs-utils'
 import { shellQuote } from '../ssh/shell-quote'
 import { parseDockerSshHost, SshFs } from '../ssh/ssh-fs'
 import { docker } from './cli'
+import { formatComposeEnvFile } from './compose-env'
 import { execRcon } from './rcon'
 
 export class DockerComposeHost implements GameHost {
@@ -36,16 +38,23 @@ export class DockerComposeHost implements GameHost {
     return dirname(this.config.composeFile)
   }
 
+  /**
+   * Env for the `docker compose` CLI only. Do not forward instance runtime
+   * vars (esp. CF_API_KEY): Compose interpolates `$` in env_files using the
+   * process environment and would mangle bcrypt-style keys a second time.
+   */
   private composeProcessEnv(extra?: Record<string, string>): NodeJS.ProcessEnv {
-    return {
+    const env: NodeJS.ProcessEnv = {
       ...process.env,
       ...(this.config.dockerHost
         ? { DOCKER_HOST: this.config.dockerHost }
         : {}),
       RCON_PASSWORD: this.config.rconPassword,
-      ...this.lastEnv,
       ...extra
     }
+    // Prefer the escaped value from `.eclipse-runtime.env`, not the host .env.
+    delete env.CF_API_KEY
+    return env
   }
 
   private withLock<T>(fn: () => Promise<T>): Promise<T> {
@@ -63,6 +72,11 @@ export class DockerComposeHost implements GameHost {
 
   private composeRuntimePath() {
     return join(this.config.instancesDir, '..', '.eclipse-runtime.env')
+  }
+
+  /** Local path the compose *client* reads for env_file (API container when remote). */
+  private localComposeEnvPath() {
+    return join(dirname(this.config.composeFile), '.eclipse-runtime.env')
   }
 
   private async clearActivePath() {
@@ -119,15 +133,18 @@ export class DockerComposeHost implements GameHost {
     const merged = { ...this.lastEnv, ...env }
     const body =
       Object.keys(merged).length > 0
-        ? `${Object.entries(merged)
-            .map(([k, v]) => `${k}=${v}`)
-            .join('\n')}\n`
+        ? formatComposeEnvFile(merged)
         : 'TYPE=VANILLA\nVERSION=1.21.1\nMEMORY=4G\n'
 
     if (this.ssh) {
       await this.ssh.mkdirp(dataPath)
+      await this.ssh.mkdirp(dirname(composeRuntimePath))
       await this.ssh.writeFile(runtimePath, body)
       await this.ssh.writeFile(composeRuntimePath, body)
+      // DOCKER_HOST=ssh:// → compose client reads env_file on this machine
+      const localEnv = this.localComposeEnvPath()
+      await mkdir(dirname(localEnv), { recursive: true })
+      await writeFile(localEnv, body, 'utf8')
       return
     }
 
@@ -170,7 +187,7 @@ export class DockerComposeHost implements GameHost {
           '--no-deps',
           'mc'
         ],
-        { cwd: this.composeCwd(), env: this.composeProcessEnv(env) }
+        { cwd: this.composeCwd(), env: this.composeProcessEnv() }
       )
       if (code !== 0) throw new Error(`docker compose up failed: ${stderr}`)
     })
