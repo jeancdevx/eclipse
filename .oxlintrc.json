@@ -1,0 +1,53 @@
+{
+  "$schema": "./node_modules/oxlint/configuration_schema.json",
+  "plugins": [
+    "typescript",
+    "import",
+    "node",
+    "promise",
+    "unicorn",
+    "oxc",
+    "react"
+  ],
+  "categories": {
+    "correctness": "error",
+    "suspicious": "warn",
+    "pedantic": "off"
+  },
+  "env": {
+    "builtin": true
+  },
+  "rules": {
+    "no-console": "warn",
+    "react/react-in-jsx-scope": "off",
+    "typescript/no-explicit-any": "error",
+    "import/no-unassigned-import": ["warn", { "allow": ["**/*.css", "*.css"] }],
+    "typescript/no-unused-vars": [
+      "error",
+      { "argsIgnorePattern": "^_", "varsIgnorePattern": "^_" }
+    ]
+  },
+  "ignorePatterns": [
+    "**/dist/**",
+    "**/node_modules/**",
+    "**/.turbo/**",
+    "**/coverage/**",
+    "**/.next/**",
+    "infra/**",
+    "docs/**"
+  ],
+  "overrides": [
+    {
+      "files": ["**/apps/bot/**"],
+      "rules": {
+        "no-console": "off"
+      }
+    },
+    {
+      "files": ["**/*.{test,spec}.{ts,tsx}"],
+      "rules": {
+        "no-console": "off"
+      }
+    }
+  ]
+}
