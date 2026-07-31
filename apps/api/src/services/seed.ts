@@ -1,13 +1,10 @@
 import { eq } from 'drizzle-orm'
-import { mkdir, writeFile } from 'node:fs/promises'
-import { join } from 'node:path'
 
 import { instances } from '@eclipse/db'
-import { MEMORY_PRESET_MAP } from '@eclipse/shared'
 
-import { env } from '../env'
-import { db, instanceDataPath } from './runtime'
+import { db, instanceDataPath } from './runtime.js'
 
+/** Seed a default instance row without touching remote/local game FS. */
 export async function seedDefaultInstance() {
   const slug = 'default'
   const [existing] = await db
@@ -18,19 +15,8 @@ export async function seedDefaultInstance() {
   if (existing) return existing
 
   const dataPath = instanceDataPath(slug)
-  await mkdir(join(dataPath, 'mods'), { recursive: true })
-
   const loader = (process.env.DEFAULT_MC_LOADER ?? 'VANILLA').toUpperCase()
   const mcVersion = process.env.DEFAULT_MC_VERSION ?? '1.21.1'
-  const memory = MEMORY_PRESET_MAP.light
-  const body = `TYPE=${loader}\nVERSION=${mcVersion}\nMEMORY=${memory}\nMOTD=Eclipse local\n`
-
-  await writeFile(join(dataPath, '.eclipse-runtime.env'), body, 'utf8')
-  await writeFile(
-    join(env.instancesDir, '..', '.eclipse-runtime.env'),
-    body,
-    'utf8'
-  )
 
   await db.update(instances).set({ isActive: false })
 

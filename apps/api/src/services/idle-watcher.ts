@@ -2,9 +2,9 @@ import { eq } from 'drizzle-orm'
 
 import { instances } from '@eclipse/db'
 
-import { db, gameHost } from '../services/runtime.js'
-
 import { env } from '../env.js'
+import { stopActive } from './instance-lifecycle.js'
+import { db, gameHost } from './runtime.js'
 
 let emptySince: number | null = null
 let timer: ReturnType<typeof setInterval> | null = null
@@ -44,11 +44,7 @@ async function tick() {
     if (Date.now() - emptySince >= idleMs) {
       // eslint-disable-next-line no-console
       console.info('[idle] shutting down after empty period')
-      await gameHost.stop()
-      await db
-        .update(instances)
-        .set({ status: 'idle', updatedAt: new Date() })
-        .where(eq(instances.id, active.id))
+      await stopActive()
       emptySince = null
     }
   } catch (err) {
