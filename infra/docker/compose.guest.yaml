@@ -9,7 +9,10 @@ services:
     stdin_open: true
     network_mode: host
     env_file:
-      - /var/lib/eclipse/.eclipse-runtime.env
+      # Relative to this compose file. With DOCKER_HOST=ssh:// the compose
+      # *client* (control-plane API) must have this file locally; the host
+      # also stages it under /var/lib/eclipse on the game VM for operators.
+      - .eclipse-runtime.env
     environment:
       EULA: 'TRUE'
       USE_AIKAR_FLAGS: 'TRUE'
