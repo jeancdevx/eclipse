@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import type { Loader, MemoryPreset } from '@eclipse/shared'
 
@@ -15,6 +15,7 @@ import {
 } from '@/components/ui/dialog'
 import {
   Field,
+  FieldDescription,
   FieldGroup,
   FieldLabel
 } from '@/components/ui/field'
@@ -28,7 +29,13 @@ import {
   SelectValue
 } from '@/components/ui/select'
 import { Spinner } from '@/components/ui/spinner'
-import { apiPost } from '@/lib/client-api'
+import { apiGet, apiPost } from '@/lib/client-api'
+
+type Caps = {
+  maxHeap?: string
+  maxHeapMb?: number
+  presets?: Record<string, { memory: string; fits: boolean }>
+}
 
 type Props = {
   open: boolean
@@ -43,6 +50,14 @@ export function CreateInstanceDialog({ open, onOpenChange, onCreated }: Props) {
   const [mcVersion, setMcVersion] = useState('1.21.1')
   const [preset, setPreset] = useState<MemoryPreset>('light')
   const [pending, setPending] = useState(false)
+  const [caps, setCaps] = useState<Caps | null>(null)
+
+  useEffect(() => {
+    if (!open) return
+    void apiGet<Caps>('/server/capabilities')
+      .then(setCaps)
+      .catch(() => setCaps(null))
+  }, [open])
 
   async function submit() {
     setPending(true)
@@ -54,7 +69,12 @@ export function CreateInstanceDialog({ open, onOpenChange, onCreated }: Props) {
         mcVersion,
         memoryPreset: preset
       })
-      toast.success('Instance created')
+      const fits = caps?.presets?.[preset]?.fits
+      toast.success(
+        fits === false
+          ? `Instance created (heap will be capped to ~${caps?.maxHeap ?? 'host max'} on this VM)`
+          : 'Instance created'
+      )
       onOpenChange(false)
       onCreated()
     } catch (err) {
@@ -64,13 +84,20 @@ export function CreateInstanceDialog({ open, onOpenChange, onCreated }: Props) {
     }
   }
 
+  function presetLabel(key: MemoryPreset, label: string) {
+    const info = caps?.presets?.[key]
+    if (!info) return label
+    return info.fits ? label : `${label} · capped to ${caps?.maxHeap}`
+  }
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
         <DialogHeader>
           <DialogTitle>New instance</DialogTitle>
           <DialogDescription>
-            Creates a new world profile under the instances data directory.
+            Creates a new world profile. JVM heap is limited by game-host RAM
+            {caps?.maxHeap ? ` (max ~${caps.maxHeap} on this host)` : ''}.
           </DialogDescription>
         </DialogHeader>
         <FieldGroup>
@@ -129,12 +156,25 @@ export function CreateInstanceDialog({ open, onOpenChange, onCreated }: Props) {
               </SelectTrigger>
               <SelectContent>
                 <SelectGroup>
-                  <SelectItem value='light'>light (8G · local-safe)</SelectItem>
-                  <SelectItem value='standard'>standard (16G)</SelectItem>
-                  <SelectItem value='heavy'>heavy (24G · Azure)</SelectItem>
+                  <SelectItem value='light'>
+                    {presetLabel('light', 'light (8G)')}
+                  </SelectItem>
+                  <SelectItem value='standard'>
+                    {presetLabel('standard', 'standard (16G)')}
+                  </SelectItem>
+                  <SelectItem value='heavy'>
+                    {presetLabel('heavy', 'heavy (24G)')}
+                  </SelectItem>
                 </SelectGroup>
               </SelectContent>
             </Select>
+            {caps?.presets?.[preset]?.fits === false ? (
+              <FieldDescription>
+                This host cannot allocate that heap. On start it will be capped
+                to ~{caps.maxHeap}. Use a larger Azure VM (D8 / 32 GB) for
+                16G+.
+              </FieldDescription>
+            ) : null}
           </Field>
         </FieldGroup>
         <DialogFooter>
