@@ -1,0 +1,22 @@
+# Guest VM compose — used by cloud-init on the Azure game VM.
+# Active instance path is swapped by the control plane before start.
+
+services:
+  mc:
+    image: itzg/minecraft-server:2026.7.2
+    container_name: eclipse-mc
+    tty: true
+    stdin_open: true
+    network_mode: host
+    env_file:
+      - /var/lib/eclipse/.eclipse-runtime.env
+    environment:
+      EULA: 'TRUE'
+      USE_AIKAR_FLAGS: 'TRUE'
+      ENABLE_RCON: 'true'
+      RCON_PASSWORD: ${RCON_PASSWORD}
+      RCON_PORT: 25575
+      ONLINE_MODE: 'TRUE'
+    volumes:
+      - /var/lib/eclipse/active:/data
+    restart: on-failure:5
