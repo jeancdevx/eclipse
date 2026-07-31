@@ -1,0 +1,12 @@
+project                  = "eclipse"
+location                 = "eastus"
+admin_username           = "eclipse"
+ssh_public_key           = "ssh-ed25519 AAAA... replace-me"
+# Control plane → game VM (DOCKER_HOST=ssh:// + remote FS)
+control_plane_ssh_pubkey = "ssh-ed25519 AAAA... control-plane-key"
+# Public IP of the always-on control plane /32 (RCON + SSH from API)
+control_plane_cidr       = "5.6.7.8/32"
+allowed_ssh_cidr         = "1.2.3.4/32"
+vm_size                  = "Standard_D8s_v5"
+# For ~300 mods use: Standard_D8s_v5
+data_disk_size_gb        = 128

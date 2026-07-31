@@ -1,0 +1,10 @@
+# Optional remote state — copy to backend.tf and fill in after creating the SA.
+#
+# terraform {
+#   backend "azurerm" {
+#     resource_group_name  = "eclipse-tfstate-rg"
+#     storage_account_name = "eclipsetfstate"
+#     container_name       = "tfstate"
+#     key                  = "eclipse.tfstate"
+#   }
+# }

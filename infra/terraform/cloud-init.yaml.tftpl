@@ -1,0 +1,54 @@
+#cloud-config
+package_update: true
+packages:
+  - docker.io
+  - docker-compose-v2
+  - xfsprogs
+  - python3
+write_files:
+  - path: /opt/eclipse/compose.guest.yaml
+    permissions: '0644'
+    owner: root:root
+    content: |
+      ${indent(6, guest_compose)}
+%{ if control_plane_ssh_pubkey != "" ~}
+  - path: /home/${admin_username}/.ssh/authorized_keys_eclipse_cp
+    permissions: '0600'
+    owner: ${admin_username}:${admin_username}
+    content: |
+      ${control_plane_ssh_pubkey}
+%{ endif ~}
+runcmd:
+  - systemctl enable --now docker
+  - usermod -aG docker ${admin_username}
+  - mkdir -p /var/lib/eclipse/instances /opt/eclipse
+  - |
+    DISK=$(lsblk -dpno NAME,TYPE | awk '$2=="disk"{print $1}' | tail -n1)
+    if ! blkid "$DISK"1 >/dev/null 2>&1; then
+      parted -s "$DISK" mklabel gpt
+      parted -s "$DISK" mkpart primary 0% 100%
+      mkfs.xfs "$${DISK}1"
+    fi
+  - |
+    DATA_PART=$(lsblk -dpno NAME,TYPE | awk '$2=="part"{print $1}' | tail -n1)
+    grep -q /var/lib/eclipse /etc/fstab || echo "$DATA_PART /var/lib/eclipse xfs defaults,nofail 0 2" >> /etc/fstab
+    mount -a || true
+  - mkdir -p /var/lib/eclipse/instances/default
+  - rm -rf /var/lib/eclipse/active
+  - ln -sfn /var/lib/eclipse/instances/default /var/lib/eclipse/active
+  - |
+    if [ ! -f /var/lib/eclipse/.eclipse-runtime.env ]; then
+      printf 'TYPE=VANILLA\nVERSION=1.21.1\nMEMORY=4G\n' > /var/lib/eclipse/.eclipse-runtime.env
+    fi
+  - chown -R ${admin_username}:${admin_username} /var/lib/eclipse /opt/eclipse || true
+%{ if control_plane_ssh_pubkey != "" ~}
+  - |
+    AUTH=/home/${admin_username}/.ssh/authorized_keys
+    mkdir -p /home/${admin_username}/.ssh
+    touch "$AUTH"
+    cat /home/${admin_username}/.ssh/authorized_keys_eclipse_cp >> "$AUTH"
+    sort -u "$AUTH" -o "$AUTH"
+    chown -R ${admin_username}:${admin_username} /home/${admin_username}/.ssh
+    chmod 700 /home/${admin_username}/.ssh
+    chmod 600 "$AUTH"
+%{ endif ~}
