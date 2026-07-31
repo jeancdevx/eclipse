@@ -47,7 +47,17 @@ First boot of a large pack can take many minutes.
 
 **Files** (or instance → Files) browses `{dataPath}` with drag-and-drop upload and Monaco editing for text configs (`server.properties`, JSON, TOML, YAML, …). Paths are sandboxed (no `..`).
 
-## Pre-flight checklist
+## CurseForge API key (`CF_API_KEY`)
+
+Keys from [console.curseforge.com](https://console.curseforge.com/) look like `$2a$10$…`.
+
+Docker Compose interpolates `$` in env files. Eclipse escapes them when writing
+`.eclipse-runtime.env`. If you put the key in a compose `env_file` yourself, use
+doubled dollars: `CF_API_KEY=$$2a$$10$$…`.
+
+Error `API key should start with '$2a$10$' but yours looked like '$2a$10.…'` means
+the `$` were eaten — fix escaping and recreate/restart the instance (avoid crash loops
+that burn CurseForge rate limits).
 
 - [ ] Instance stopped before huge mod uploads
 - [ ] Backup created before switching loaders/versions
